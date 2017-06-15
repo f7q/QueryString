@@ -18,6 +18,11 @@ namespace IdentityDirectory.Scim.Query
         private Expression<Func<TResource, bool>> BuildExpression<TResource>(ScimExpression filter, IAttributeNameMapper mapper, string prefix)
         {
             var callExpression = filter as ScimCallExpression;
+            if (callExpression != null && (callExpression.OperatorName == "Delimiter"))
+            {
+                return this.BindLogicalExpression<TResource>(callExpression, mapper, prefix);
+            }
+
             if (callExpression!=null && (callExpression.OperatorName == "And" || callExpression.OperatorName == "Or"))
             {
                 return this.BindLogicalExpression<TResource>(callExpression, mapper, prefix);
@@ -90,6 +95,18 @@ namespace IdentityDirectory.Scim.Query
                     binaryExpression = Expression.Constant(true);
                 }
             }
+            else if (expression.OperatorName.Equals("Descending"))
+            {
+                //ThenByDescending
+                var method = typeof(string).GetMethod("OrderByDescending", new[] { typeof(string) });
+                binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+            }
+            else if (expression.OperatorName.Equals("Ascending"))
+            {
+                //ThenBy
+                var method = typeof(string).GetMethod("OrderBy", new[] { typeof(string) });
+                binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+            }
             if (binaryExpression == null)
             {
                 throw new InvalidOperationException("Unsupported node operator");
@@ -110,6 +127,10 @@ namespace IdentityDirectory.Scim.Query
             if (expression.OperatorName.Equals("Or"))
             {
                 return leftNodeExpression.Or(rightNodeExpression);
+            }
+            if ((expression.OperatorName != "And" || expression.OperatorName != "Or"))
+            {
+                return this.BindAttributeExpression<TResource>(expression, mapper);
             }
 
             throw new InvalidOperationException("Unsupported branch operator");

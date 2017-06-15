@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>IdentityDirectory.Scim Class Library</Description>
-    <Authors>aanufriyev</Authors>
+    <Description>QueryString Class Library</Description>
+    <Authors>f7q</Authors>
     <TargetFramework>netcoreapp1.0</TargetFramework>
     <AssemblyName>IdentityDirectory.Scim</AssemblyName>
     <PackageId>IdentityDirectory.Scim</PackageId>

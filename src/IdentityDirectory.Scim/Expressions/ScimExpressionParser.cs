@@ -48,6 +48,9 @@
                                                               from close in Parse.Char('\'').Optional()
                                                               select content;
         
+        /// <summary>
+        /// 仮想コンストラクタ
+        /// </summary>
         static ScimExpressionParser()
         {
             // Value値 [']?[a-zA-Z][a-zA-Z0-9]+['}?
