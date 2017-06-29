@@ -20,7 +20,7 @@ namespace IdentityDirectory.Scim.Query
             var callExpression = filter as ScimCallExpression;
             if (callExpression != null && (callExpression.OperatorName == "Delimiter"))
             {
-                return this.BindLogicalExpression<TResource>(callExpression, mapper, prefix);
+                return this.BindAttributeExpression<TResource>(callExpression, mapper);
             }
 
             if (callExpression!=null && (callExpression.OperatorName == "And" || callExpression.OperatorName == "Or"))
@@ -95,17 +95,34 @@ namespace IdentityDirectory.Scim.Query
                     binaryExpression = Expression.Constant(true);
                 }
             }
-            else if (expression.OperatorName.Equals("Descending"))
+            else if (expression.OperatorName.Equals("OrderBy") || expression.OperatorName.Equals("OrderByDescending"))
             {
-                //ThenByDescending
-                var method = typeof(string).GetMethod("OrderByDescending", new[] { typeof(string) });
-                binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                var propertyValue = property.Type == typeof(bool) ? (object)Boolean.Parse(expression.Operands[0].ToString()) : expression.Operands[0].ToString();
+                var method = typeof(string).GetMethod(expression.OperatorName, new[] { typeof(string) });
+                //binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(null), property.Type));
+                var sortby = expression.Operands[0].ToString();
+                var param = parameter; // Expression.Parameter(property.Type);// typeof(T));
+                binaryExpression = Expression.Convert(Expression.Property(param, sortby), property.Type);
             }
-            else if (expression.OperatorName.Equals("Ascending"))
+            else if (expression.OperatorName.Equals("Delimiter"))
             {
-                //ThenBy
-                var method = typeof(string).GetMethod("OrderBy", new[] { typeof(string) });
-                binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                var ope = expression.Operands[0].ToString();
+                if (ope.Equals("OrderByDescending") || ope.Equals("ThenByDescending"))
+                {
+                    //ThenByDescending
+                    var method = typeof(string).GetMethod(ope, new[] { typeof(string) });
+                    binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                }
+                else if (ope.Equals("OrderBy") || ope.Equals("ThenBy"))
+                {
+                    //ThenBy
+                    var method = typeof(string).GetMethod(ope, new[] { typeof(string) });
+                    binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                }
+                else
+                {
+                    binaryExpression = this.BindAttributeExpression<TResource>(expression, mapper);
+                }
             }
             if (binaryExpression == null)
             {
