@@ -6,14 +6,15 @@
 
     public class ScimExpressionParser
     {
+        private static readonly Parser<string> Or = Parse.String("or").Or(Parse.String("Or")).Or(Parse.String("OR")).Token().Return("Or");
         private static readonly Parser<string> And = Parse.String("and").Or(Parse.String("And")).Or(Parse.String("AND")).Token().Return("And");
         private static readonly Parser<string> Eq = Parse.String("eq").Or(Parse.String("Eq")).Or(Parse.String("EQ")).Token().Return("Equal");
         private static readonly Parser<string> Ne = Parse.String("ne").Or(Parse.String("Ne")).Or(Parse.String("NE")).Token().Return("NotEqual");
         private static readonly Parser<string> Gt = Parse.String("gt").Or(Parse.String("Gt")).Or(Parse.String("GT")).Token().Return("GreaterThan");
         private static readonly Parser<string> Ge = Parse.String("ge").Or(Parse.String("Ge")).Or(Parse.String("GE")).Token().Return("GreaterThanOrEqual");
-        private static readonly Parser<string> Or = Parse.String("or").Or(Parse.String("Or")).Or(Parse.String("OR")).Token().Return("Or");
         private static readonly Parser<string> Lt = Parse.String("lt").Or(Parse.String("Lt")).Or(Parse.String("LT")).Token().Return("LessThan");
         private static readonly Parser<string> Le = Parse.String("le").Or(Parse.String("Le")).Or(Parse.String("LE")).Token().Return("LessThanOrEqual");
+        private static readonly Parser<string> Like = Parse.String("like").Or(Parse.String("Like")).Or(Parse.String("LIKE")).Token().Return("Contains");
         private static readonly Parser<string> Co = Parse.String("co").Or(Parse.String("Co")).Or(Parse.String("CO")).Token().Return("Contains");
         private static readonly Parser<string> Sw = Parse.String("sw").Or(Parse.String("Sw")).Or(Parse.String("SW")).Token().Return("StartsWith");
         private static readonly Parser<string> Ew = Parse.String("ew").Or(Parse.String("Ew")).Or(Parse.String("EW")).Token().Return("EndsWith");
@@ -44,7 +45,7 @@
 
         private static readonly Parser<char> StringContentChar = Parse.CharExcept("\\\"").Or(Parse.String("\\\\").Return('\\')).Or(Parse.String("\\\"").Return('\"'));
         private static readonly Parser<string> QuotedString = from open in Parse.Char('\'').Optional()
-                                                              from content in Parse.LetterOrDigit.Or(Parse.Chars(",;:.-/ ")).Many().Text()
+                                                              from content in Parse.LetterOrDigit.Or(Parse.Chars(",;:.-/ ").Or(Parse.String("*").Return('%'))).Many().Text()
                                                               from close in Parse.Char('\'').Optional()
                                                               select content;
         
@@ -93,12 +94,12 @@
                 .XOr(Literal.Or(AttrPath.Token()))
                 .XOr(CaseInsensitiveString)).Token();
 
-            // compareOp = "eq" / "ne" / "co" /
+            // compareOp = "eq" / "ne" / "co" / "like" /
             //        "sw" / "ew" /
             //        "gt" / "lt" /
             //        "ge" / "le"
             Comparison = Parse.XChainOperator(
-                Le.Or(Lt)
+                Le.Or(Lt.Or(Like))
                 .XOr(Ge.Or(Gt))
                 .XOr(Eq.Or(Ew))
                 .XOr(Sw)

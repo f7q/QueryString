@@ -231,6 +231,7 @@
                 Assert.Equal("", context.ScimUsers.FirstOrDefault().Name.FamilyName); // ICollection化しないとリレーション張れない？
             }
         }
+
         [Fact]
         public void CanConvertPath2OrderBy()
         {
