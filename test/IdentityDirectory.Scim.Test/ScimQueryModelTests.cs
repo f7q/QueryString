@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Dynamic;
     using System.Linq;
     using IdentityDirectory.Scim.Query;
     using IdentityDirectory.Scim.Services;
@@ -24,6 +25,8 @@
                                                         new ScimUser("2", "user2", "user2gn", "user2fn"),
                                                         new ScimUser("3", "user3", "user3gn", "user3fn")
                                                     };
+
+        private List<Item2> testResources2 = new List<Item2>();
 
         [Fact]
         public void CanConvertBasicFilter()
@@ -274,6 +277,50 @@
                 Assert.Equal("user3", context.ScimUsers.Where(predicate).FirstOrDefault().UserName);
                 Assert.Equal("", context.ScimUsers.FirstOrDefault().Name.FamilyName); // ICollection化しないとリレーション張れない？
             }
+        }
+
+        [Fact]
+        public void CanConvertPath2Item2()
+        {
+            var options = new DbContextOptionsBuilder<ScimUserContext>()
+                .UseInMemoryDatabase(databaseName: "CanConvertPath2Item2")
+                .Options;
+
+            // Run the test against one instance of the context
+            using (var context = new ScimUserContext(options))
+            {
+                // var service = new BlogService(context);
+                // service.Add("http://sample.com");
+
+                var item = new Item2();
+                item.Id = 1;
+                item.Name = "name" + 1;
+                item.Flg = false;
+
+                context.Item2s.Add(item);
+                context.SaveChanges();
+                item = new Item2();
+                item.Id = 2;
+                item.Name = "name" + 2;
+                item.Flg = true;
+                context.Item2s.Add(item);
+                context.SaveChanges();
+            }
+
+            // Use a separate instance of the context to verify correct data was saved to database
+            using (var context = new ScimUserContext(options))
+            {
+                var converter = new DefaultFilterBinder();
+                var nameMapper = new DefaultAttributeNameMapper();
+                var filterNode = ScimExpressionParser.ParseExpression("Flg eq true");
+                var predicate = converter.Bind<Item2>(filterNode, string.Empty, false, nameMapper);
+                Assert.NotNull(predicate);
+                Console.WriteLine(predicate);
+
+                Assert.Equal(1, context.Item2s.Count(predicate));
+                Assert.Throws<InvalidOperationException>(() => context.Item2s.Single().Name);
+                Assert.Equal("name2", context.Item2s.Where(predicate).FirstOrDefault().Name);
+           }
         }
     }
 }

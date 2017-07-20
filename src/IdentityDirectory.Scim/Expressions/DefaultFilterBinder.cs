@@ -48,9 +48,42 @@ namespace IdentityDirectory.Scim.Query
             Expression binaryExpression = null;
             if (expression.OperatorName.Equals("Equal"))
             {
-                // Workaround for missing coersion between String and Guid types.
-                var propertyValue = property.Type == typeof(Guid) ? (object)Guid.Parse(expression.Operands[1].ToString()) : expression.Operands[1].ToString();
-                binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
+                /*
+                if (expression.Operands[1].ToString().Equals("String.Boolean"))
+                {
+                    var propertyValue = property.Type == typeof(Guid) ? (dynamic)Guid.Parse("String.Boolean") : "String.String";
+                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
+                }
+                else if (expression.Operands[1].ToString().Equals("String.String"))
+                {
+                    var propertyValue = property.Type == typeof(Guid) ? (dynamic)Guid.Parse("String.String") : "String.Boolean";
+                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
+                }
+                else*/
+
+                try
+                {
+                    // Workaround for missing coersion between String and Guid types.
+                    var propertyValue = property.Type == typeof(Guid) ? (object)Guid.Parse(expression.Operands[1].ToString()) : expression.Operands[1].ToString();
+                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
+                }
+                catch (System.InvalidOperationException ex)
+                {
+                    System.Console.WriteLine(ex.ToString());
+
+                    // If value cannot be null, then it is always present.
+                    if (IsNullable(property.Type))
+                    {
+                        // binaryExpression = Expression.NotEqual(property, Expression.Constant(null, property.Type));
+                        //binaryExpression = Expression.Equal(property, Expression.Convert(Expression.NotEqual(property, Expression.Constant(null, property.Type)), property.Type));
+                        binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(false), property.Type));
+                    }
+                    else
+                    {
+                        //binaryExpression = Expression.Constant(true);
+                        binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(true), property.Type));
+                    }
+                }
             }
             else if (expression.OperatorName.Equals("StartsWith"))
             {
@@ -128,8 +161,20 @@ namespace IdentityDirectory.Scim.Query
             {
                 throw new InvalidOperationException("Unsupported node operator");
             }
+            try
+            {
+                // Workaround for missing coersion between String and Guid types.
+                // x parameter = parameter.Type == typeof(Guid) ? (object)Guid.Parse(expression.Operands[1].ToString()) : expression.Operands[1].ToString();
+                //Expression.Convert(Expression.Constant(propertyValue), property.Type)
+                //parameter = ParameterExpression.Parameter(typeof(string)) == ParameterExpression.Parameter(typeof(TResource)) : parameter ? ParameterExpression.Parameter(typeof(bool));
+                return Expression.Lambda<Func<TResource, bool>>(binaryExpression, parameter);
 
-            return Expression.Lambda<Func<TResource, bool>>(binaryExpression, parameter);
+            }
+            catch (System.ArgumentException ex)
+            {
+                System.Console.WriteLine(ex.ToString());
+                throw new InvalidOperationException("Expression.Lambda ArgumentException");
+            }
         }
 
         protected virtual Expression<Func<TResource, bool>> BindLogicalExpression<TResource>(ScimCallExpression expression, IAttributeNameMapper mapper, string prefix)

@@ -62,9 +62,9 @@
 
             //compValue = false / null / true / number / string 
             //; rules from JSON(RFC 7159)
-            Literal = Parse.String("true").Return(ScimExpression.Constant(true))
-                .XOr(Parse.String("false").Return(ScimExpression.Constant(false)))
-                .XOr(Parse.String("null").Return(ScimExpression.Constant(null)));
+            Literal = Parse.String("true").Or(Parse.String("True").Or(Parse.String("TRUE"))).Return(ScimExpression.Constant(true))
+                .XOr(Parse.String("false").Or(Parse.String("False").Or(Parse.String("FALSE"))).Return(ScimExpression.Constant(false)))
+                .XOr(Parse.String("null").Or(Parse.String("Null").Or(Parse.String("NULL"))).Return(ScimExpression.Constant(null)));
 
             //ATTRNAME = ALPHA * (nameChar)
             //nameChar = "-" / "_" / DIGIT / ALPHA
