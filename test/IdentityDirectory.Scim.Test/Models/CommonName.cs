@@ -39,5 +39,7 @@ namespace IdentityDirectory.Scim.Test.Models
         public string Name { get; set; }
 
         public bool Flg { get; set; }
+
+        public DateTime Day { get; set; }
     }
 }

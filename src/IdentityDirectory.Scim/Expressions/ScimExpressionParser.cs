@@ -27,6 +27,7 @@
         private static readonly Parser<Func<ScimExpression, ScimExpression>> ValuePath;
 
         private static readonly Parser<ScimExpression> CaseInsensitiveString;
+        private static readonly Parser<ScimExpression> CaseDateTimeString;
         private static readonly Parser<ScimExpression> Operand;
         private static readonly Parser<ScimExpression> Literal;
         private static readonly Parser<ScimExpression> Filter;
@@ -48,7 +49,14 @@
                                                               from content in Parse.LetterOrDigit.Or(Parse.Chars(",;:.-/ ").Or(Parse.String("*").Return('%'))).Many().Text()
                                                               from close in Parse.Char('\'').Optional()
                                                               select content;
-        
+        private static readonly Parser<string> DateTimeString = from open in Parse.String("datetime\'")
+                                                                         .Or(Parse.String("Datetime\'").Return("datetime\'"))
+                                                                         .Or(Parse.String("DateTime\'").Return("datetime\'"))
+                                                                         .Or(Parse.String("DATETIME\'").Return("datetime\'"))
+                                                              from content in Parse.LetterOrDigit.Or(Parse.Chars(":./ ")).Many().Text()
+                                                              from close in Parse.Char('\'')
+                                                              select content;
+
         /// <summary>
         /// 仮想コンストラクタ
         /// </summary>
@@ -57,6 +65,8 @@
             // Value値 [']?[a-zA-Z][a-zA-Z0-9]+['}?
             CaseInsensitiveString = from content in QuotedString
                                     select ScimExpression.String(content);
+            CaseDateTimeString = from content in DateTimeString
+                                    select ScimExpression.Constant(DateTime.Parse(content));
             // Key値 [a-zA-Z][_a-zA-Z0-9]+
             IdentifierName = Parse.Identifier(Parse.Letter, Parse.LetterOrDigit.Or(Parse.Char('_')));
 
@@ -64,7 +74,8 @@
             //; rules from JSON(RFC 7159)
             Literal = Parse.String("true").Or(Parse.String("True").Or(Parse.String("TRUE"))).Return(ScimExpression.Constant(true))
                 .XOr(Parse.String("false").Or(Parse.String("False").Or(Parse.String("FALSE"))).Return(ScimExpression.Constant(false)))
-                .XOr(Parse.String("null").Or(Parse.String("Null").Or(Parse.String("NULL"))).Return(ScimExpression.Constant(null)));
+                .XOr(Parse.String("null").Or(Parse.String("Null").Or(Parse.String("NULL"))).Return(ScimExpression.Constant(null)))
+                .XOr(CaseDateTimeString);
 
             //ATTRNAME = ALPHA * (nameChar)
             //nameChar = "-" / "_" / DIGIT / ALPHA

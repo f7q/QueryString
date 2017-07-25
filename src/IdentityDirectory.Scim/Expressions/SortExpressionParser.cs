@@ -13,7 +13,7 @@
             }
             if (!expression.Contains(","))
             {
-                if (expression.Contains("asc"))
+                if (expression.ToLower().Contains("asc"))
                 {
                     var value = expression.Split(' ')[0];
                     return ScimExpression.Unary("OrderBy", ScimExpression.String(value));
@@ -32,7 +32,7 @@
             {
                 if (count == 0)
                 {
-                    if (sort.Contains("asc"))
+                    if (sort.ToLower().Contains("asc"))
                     {
                         var value = sort.TrimStart(' ').Split(' ');
                         tree = ScimExpression.Unary("OrderBy", ScimExpression.String(value[0]));
@@ -45,7 +45,7 @@
                 }
                 else if (end >= count)
                 { 
-                    if (sort.Contains("asc"))
+                    if (sort.ToLower().Contains("asc"))
                     {
                         var value = sort.TrimStart(' ').Split(' ');
                         tree = ScimExpression.Binary("Delimiter", tree, ScimExpression.Unary("ThenBy", ScimExpression.String(value[0])));
@@ -58,7 +58,7 @@
                 }
                 else
                 {
-                    if (sort.Contains("asc"))
+                    if (sort.ToLower().Contains("asc"))
                     {
                         var value = sort.TrimStart(' ').Split(' ');
                         tree = ScimExpression.Binary("Delimiter", tree, ScimExpression.Unary("ThenBy", ScimExpression.String(value[0])));

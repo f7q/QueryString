@@ -48,19 +48,6 @@ namespace IdentityDirectory.Scim.Query
             Expression binaryExpression = null;
             if (expression.OperatorName.Equals("Equal"))
             {
-                /*
-                if (expression.Operands[1].ToString().Equals("String.Boolean"))
-                {
-                    var propertyValue = property.Type == typeof(Guid) ? (dynamic)Guid.Parse("String.Boolean") : "String.String";
-                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
-                }
-                else if (expression.Operands[1].ToString().Equals("String.String"))
-                {
-                    var propertyValue = property.Type == typeof(Guid) ? (dynamic)Guid.Parse("String.String") : "String.Boolean";
-                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
-                }
-                else*/
-
                 try
                 {
                     // Workaround for missing coersion between String and Guid types.
@@ -70,18 +57,21 @@ namespace IdentityDirectory.Scim.Query
                 catch (System.InvalidOperationException ex)
                 {
                     System.Console.WriteLine(ex.ToString());
-
-                    // If value cannot be null, then it is always present.
-                    if (IsNullable(property.Type))
+                    try
                     {
-                        // binaryExpression = Expression.NotEqual(property, Expression.Constant(null, property.Type));
-                        //binaryExpression = Expression.Equal(property, Expression.Convert(Expression.NotEqual(property, Expression.Constant(null, property.Type)), property.Type));
-                        binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(false), property.Type));
+                        // If value cannot be null, then it is always present.
+                        if (IsNullable(property.Type))
+                        {
+                            binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(null), property.Type));
+                        }
+                        else
+                        {
+                            binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(true), property.Type));
+                        }
                     }
-                    else
+                    catch (System.InvalidOperationException edate)
                     {
-                        //binaryExpression = Expression.Constant(true);
-                        binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(true), property.Type));
+                        binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(DateTime.Parse(expression.Operands[1].ToString())), property.Type));
                     }
                 }
             }
@@ -130,12 +120,18 @@ namespace IdentityDirectory.Scim.Query
             }
             else if (expression.OperatorName.Equals("OrderBy") || expression.OperatorName.Equals("OrderByDescending"))
             {
+                /*
                 var propertyValue = property.Type == typeof(bool) ? (object)Boolean.Parse(expression.Operands[0].ToString()) : expression.Operands[0].ToString();
                 var method = typeof(string).GetMethod(expression.OperatorName, new[] { typeof(string) });
                 //binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(null), property.Type));
                 var sortby = expression.Operands[0].ToString();
                 var param = parameter; // Expression.Parameter(property.Type);// typeof(T));
                 binaryExpression = Expression.Convert(Expression.Property(param, sortby), property.Type);
+                */
+                //OrderBy
+                var ope = expression.Operands[0].ToString();
+                var method = typeof(string).GetMethod(ope, new[] { typeof(string) });
+                binaryExpression = Expression.Call(property, method, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
             }
             else if (expression.OperatorName.Equals("Delimiter"))
             {
@@ -163,10 +159,6 @@ namespace IdentityDirectory.Scim.Query
             }
             try
             {
-                // Workaround for missing coersion between String and Guid types.
-                // x parameter = parameter.Type == typeof(Guid) ? (object)Guid.Parse(expression.Operands[1].ToString()) : expression.Operands[1].ToString();
-                //Expression.Convert(Expression.Constant(propertyValue), property.Type)
-                //parameter = ParameterExpression.Parameter(typeof(string)) == ParameterExpression.Parameter(typeof(TResource)) : parameter ? ParameterExpression.Parameter(typeof(bool));
                 return Expression.Lambda<Func<TResource, bool>>(binaryExpression, parameter);
 
             }
@@ -182,13 +174,13 @@ namespace IdentityDirectory.Scim.Query
             var leftNodeExpression = this.BuildExpression<TResource>(expression.Operands[0], mapper, prefix);
             var rightNodeExpression = this.BuildExpression<TResource>(expression.Operands[1], mapper, prefix);
 
-            if (expression.OperatorName.Equals("And"))
-            {
-                return leftNodeExpression.And(rightNodeExpression);
-            }
             if (expression.OperatorName.Equals("Or"))
             {
                 return leftNodeExpression.Or(rightNodeExpression);
+            }
+            if (expression.OperatorName.Equals("And"))
+            {
+                return leftNodeExpression.And(rightNodeExpression);
             }
             if ((expression.OperatorName != "And" || expression.OperatorName != "Or"))
             {

@@ -297,12 +297,14 @@
                 item.Name = "name" + 1;
                 item.Flg = false;
 
+                item.Day = DateTime.Parse("2017/07/25");
                 context.Item2s.Add(item);
                 context.SaveChanges();
                 item = new Item2();
                 item.Id = 2;
                 item.Name = "name" + 2;
                 item.Flg = true;
+                item.Day = DateTime.Parse("2017/07/27");
                 context.Item2s.Add(item);
                 context.SaveChanges();
             }
@@ -321,6 +323,56 @@
                 Assert.Throws<InvalidOperationException>(() => context.Item2s.Single().Name);
                 Assert.Equal("name2", context.Item2s.Where(predicate).FirstOrDefault().Name);
            }
+        }
+
+        [Fact]
+        public void CanConvertPath2Item3()
+        {
+            var options = new DbContextOptionsBuilder<ScimUserContext>()
+                .UseInMemoryDatabase(databaseName: "CanConvertPath2Item3")
+                .Options;
+
+            // Run the test against one instance of the context
+            using (var context = new ScimUserContext(options))
+            {
+                // var service = new BlogService(context);
+                // service.Add("http://sample.com");
+
+                var item = new Item2()
+                {
+                    Id = 3,
+                    Name = "name3",
+                    Flg = false,
+                    Day = DateTime.Parse("2017/07/26")
+                };
+
+                context.Item2s.Add(item);
+                context.SaveChanges();
+                item = new Item2()
+                {
+                    Id = 4,
+                    Name = "name4",
+                    Flg = true,
+                    Day = DateTime.Parse("2017/07/27")
+                };
+                context.Item2s.Add(item);
+                context.SaveChanges();
+            }
+
+            // Use a separate instance of the context to verify correct data was saved to database
+            using (var context = new ScimUserContext(options))
+            {
+                var converter = new DefaultFilterBinder();
+                var nameMapper = new DefaultAttributeNameMapper();
+                var filterNode = ScimExpressionParser.ParseExpression("Day eq datetime'2017/07/27'");
+                var predicate = converter.Bind<Item2>(filterNode, string.Empty, false, nameMapper);
+                Assert.NotNull(predicate);
+                Console.WriteLine(predicate);
+
+                Assert.Equal(1, context.Item2s.Count(predicate));
+                Assert.Throws<InvalidOperationException>(() => context.Item2s.Single().Name);
+                Assert.Equal("name4", context.Item2s.Where(predicate).FirstOrDefault().Name);
+            }
         }
     }
 }

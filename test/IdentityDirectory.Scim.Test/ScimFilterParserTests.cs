@@ -77,5 +77,23 @@
             Console.WriteLine(rootNode);
             Assert.Equal("Or(And(Equal(userType,Worker),Equal(userType,Employee)),And(Equal(userType,ParttimeEmployee),Equal(True,True)))", rootNode.ToString());
         }
+
+        [Fact]
+        public void CanParseDataTimeFilter1()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(User_Type like '労働者*')OR(UserType LT datetime'2017/12/31 23:59:59.999')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("Or(Contains(User_Type,労働者%),LessThan(UserType,2017/12/31 23:59:59))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseDataTimeFilter2()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(UserType eq Datetime'2017/12/31')OR(UserType LT datetime'2017/12/31 23:59:59.999')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("Or(Equal(UserType,2017/12/31 0:00:00),LessThan(UserType,2017/12/31 23:59:59))", rootNode.ToString());
+        }
     }
 }
