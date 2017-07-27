@@ -48,31 +48,23 @@ namespace IdentityDirectory.Scim.Query
             Expression binaryExpression = null;
             if (expression.OperatorName.Equals("Equal"))
             {
-                try
+                if (property.Type == typeof(System.String))
                 {
                     // Workaround for missing coersion between String and Guid types.
                     var propertyValue = property.Type == typeof(Guid) ? (object)Guid.Parse(expression.Operands[1].ToString()) : expression.Operands[1].ToString();
                     binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(propertyValue), property.Type));
                 }
-                catch (System.InvalidOperationException ex)
+                else if (IsNullable(property.Type))
                 {
-                    System.Console.WriteLine(ex.ToString());
-                    try
-                    {
-                        // If value cannot be null, then it is always present.
-                        if (IsNullable(property.Type))
-                        {
-                            binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(null), property.Type));
-                        }
-                        else
-                        {
-                            binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(true), property.Type));
-                        }
-                    }
-                    catch (System.InvalidOperationException edate)
-                    {
-                        binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(DateTime.Parse(expression.Operands[1].ToString())), property.Type));
-                    }
+                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(null), property.Type));
+                }
+                else if (property.Type == typeof(bool))
+                {
+                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(true), property.Type));
+                }
+                else if (property.Type == typeof(System.DateTime))
+                {
+                    binaryExpression = Expression.Equal(property, Expression.Convert(Expression.Constant(DateTime.Parse(expression.Operands[1].ToString())), property.Type));
                 }
             }
             else if (expression.OperatorName.Equals("StartsWith"))
@@ -92,19 +84,47 @@ namespace IdentityDirectory.Scim.Query
             }
             else if (expression.OperatorName.Equals("GreaterThan"))
             {
-                binaryExpression = Expression.GreaterThan(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                if (property.Type == typeof(System.String))
+                {
+                    binaryExpression = Expression.GreaterThan(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                }
+                else if (property.Type == typeof(System.DateTime))
+                {
+                    binaryExpression = Expression.GreaterThan(property, Expression.Convert(Expression.Constant(expression.Operands[1]), property.Type));
+                }
             }
             else if (expression.OperatorName.Equals("GreaterThanOrEqual"))
             {
-                binaryExpression = Expression.GreaterThanOrEqual(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                if (property.Type == typeof(System.String))
+                {
+                    binaryExpression = Expression.GreaterThanOrEqual(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                }
+                else if (property.Type == typeof(System.DateTime))
+                {
+                    binaryExpression = Expression.GreaterThanOrEqual(property, Expression.Convert(Expression.Constant(expression.Operands[1]), property.Type));
+                }
             }
             else if (expression.OperatorName.Equals("LessThan"))
             {
-                binaryExpression = Expression.LessThan(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                if (property.Type == typeof(System.String))
+                {
+                    binaryExpression = Expression.LessThan(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                }
+                else if (property.Type == typeof(System.DateTime))
+                {
+                    binaryExpression = Expression.LessThan(property, Expression.Convert(Expression.Constant(expression.Operands[1]), property.Type));
+                }
             }
             else if (expression.OperatorName.Equals("LessThanOrEqual"))
             {
-                binaryExpression = Expression.LessThanOrEqual(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                if (property.Type == typeof(System.String))
+                {
+                    binaryExpression = Expression.LessThanOrEqual(property, Expression.Convert(Expression.Constant(expression.Operands[1].ToString()), property.Type));
+                }
+                else if (property.Type == typeof(System.DateTime))
+                {
+                    binaryExpression = Expression.LessThanOrEqual(property, Expression.Convert(Expression.Constant(expression.Operands[1]), property.Type));
+                }
             }
             else if (expression.OperatorName.Equals("Present"))
             {
