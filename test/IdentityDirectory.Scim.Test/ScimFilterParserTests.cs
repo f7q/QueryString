@@ -75,7 +75,7 @@
             var rootNode = ScimExpressionParser.ParseExpression("userType eq'Worker' and userType eq'Employee' or userType eq 'ParttimeEmployee' and true eq True");
             Assert.NotNull(rootNode);
             Console.WriteLine(rootNode);
-            Assert.Equal("Or(And(Equal(userType,Worker),Equal(userType,Employee)),And(Equal(userType,ParttimeEmployee),Equal(True,True)))", rootNode.ToString());
+            Assert.Equal("And(Or(And(Equal(userType,Worker),Equal(userType,Employee)),Equal(userType,ParttimeEmployee)),Equal(True,True))", rootNode.ToString());
         }
 
         [Fact]
@@ -94,6 +94,15 @@
             Assert.NotNull(rootNode);
             Console.WriteLine(rootNode);
             Assert.Equal("Or(Equal(UserType,2017/12/31 0:00:00),LessThan(UserType,2017/12/31 23:59:59))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseAnd3Filter()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(UserName eq 'user3')and(UserName eq 'user1')and(UserName eq 'user2')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("And(And(Equal(UserName,user3),Equal(UserName,user1)),Equal(UserName,user2))", rootNode.ToString());
         }
     }
 }

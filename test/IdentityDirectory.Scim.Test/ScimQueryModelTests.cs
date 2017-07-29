@@ -34,7 +34,7 @@
             var mapperMoq = new Mock<IAttributeNameMapper>();
             mapperMoq.Setup(m => m.MapToInternal(It.IsAny<string>())).Returns((string s) => char.ToUpper(s[0]) + s.Substring(1));
 
-            var filterNode = ScimExpressionParser.ParseExpression("profileUrl pr and displayName co 'Employee'");
+            var filterNode = ScimExpressionParser.ParseExpression("profileUrl pr and (displayName co 'Employee')");
             var converter = new DefaultFilterBinder();
             var predicate = converter.Bind<UserAccount>(filterNode, string.Empty, false, mapperMoq.Object);
             Assert.NotNull(predicate);
@@ -191,6 +191,50 @@
         }
 
         [Fact]
+        public void CanConvertPath4Filter()
+        {
+            var options = new DbContextOptionsBuilder<ScimUserContext>()
+                .UseInMemoryDatabase(databaseName: "CanConvertPath4Filter")
+                .Options;
+
+            // Run the test against one instance of the context
+            using (var context = new ScimUserContext(options))
+            {
+                // var service = new BlogService(context);
+                // service.Add("http://sample.com");
+
+                foreach (var val in this.testResources)
+                {
+                    context.ScimUsers.Add(val);
+                    context.SaveChanges();
+                }
+
+                context.ScimUsers.Add(new ScimUser("1", "user1", "user1gn", "user1fn"));
+                context.SaveChanges();
+                context.ScimUsers.Add(new ScimUser("4", "user4", "user4gn", "user4fn"));
+                context.SaveChanges();
+            }
+
+            // Use a separate instance of the context to verify correct data was saved to database
+            using (var context = new ScimUserContext(options))
+            {
+                var converter = new DefaultFilterBinder();
+                var nameMapper = new DefaultAttributeNameMapper();
+                var filterNode = ScimExpressionParser.ParseExpression("(UserName eq 'user3')or(UserName eq 'user1')or(UserName eq 'user2')");
+                var predicate = converter.Bind<ScimUser>(filterNode, string.Empty, false, nameMapper);
+                Assert.NotNull(predicate);
+                Console.WriteLine(predicate);
+
+                Assert.Equal(3, context.ScimUsers.Count(predicate));
+                var list = context.ScimUsers.Where(predicate).ToArray();
+                Assert.Equal("user2", list[0].UserName);
+                Assert.Equal("user3", list[1].UserName);
+                Assert.Equal("user1", list[2].UserName);
+
+            }
+        }
+
+        [Fact]
         public void CanConvertPath1OrderBy()
         {
             var options = new DbContextOptionsBuilder<ScimUserContext>()
@@ -220,6 +264,7 @@
             // Use a separate instance of the context to verify correct data was saved to database
             using (var context = new ScimUserContext(options))
             {
+                Assert.Equal("user1", context.ScimUsers.OrderBy(x => x.UserName).FirstOrDefault().UserName);
                 var converter = new DefaultFilterBinder();
                 var nameMapper = new DefaultAttributeNameMapper();
                 var sortNode = new Klaims.Scim.Tests.Models.TestExpressionVisitor();
@@ -265,6 +310,9 @@
             // Use a separate instance of the context to verify correct data was saved to database
             using (var context = new ScimUserContext(options))
             {
+                context.ScimUsers.OrderBy(x => x.UserName).ThenBy(x => x.Id);
+                Assert.Equal("user2", context.ScimUsers.FirstOrDefault().UserName);
+
                 var converter = new DefaultFilterBinder();
                 var nameMapper = new DefaultAttributeNameMapper();
                 var filterNode = SortExpressionParser.ParseExpression("UserName asc, Id asc");
@@ -274,7 +322,7 @@
 
                 Assert.Equal(1, context.ScimUsers.Count(predicate));
                 Assert.Throws<InvalidOperationException>(() => context.ScimUsers.Single().UserName);
-                Assert.Equal("user3", context.ScimUsers.Where(predicate).FirstOrDefault().UserName);
+                Assert.Equal("user3", context.ScimUsers.OrderBy(predicate).FirstOrDefault().UserName);
                 Assert.Equal("", context.ScimUsers.FirstOrDefault().Name.FamilyName); // ICollection化しないとリレーション張れない？
             }
         }

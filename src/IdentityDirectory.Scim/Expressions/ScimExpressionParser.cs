@@ -49,13 +49,13 @@
                                                               from content in Parse.LetterOrDigit.Or(Parse.Chars(",;:.-/ ").Or(Parse.String("*").Return('%'))).Many().Text()
                                                               from close in Parse.Char('\'').Optional()
                                                               select content;
-        private static readonly Parser<string> DateTimeString = from open in Parse.String("datetime\'")
+        private static readonly Parser<DateTime> DateTimeString = from open in Parse.String("datetime\'")
                                                                          .Or(Parse.String("Datetime\'").Return("datetime\'"))
                                                                          .Or(Parse.String("DateTime\'").Return("datetime\'"))
                                                                          .Or(Parse.String("DATETIME\'").Return("datetime\'"))
                                                               from content in Parse.LetterOrDigit.Or(Parse.Chars(":./ ")).Many().Text()
                                                               from close in Parse.Char('\'')
-                                                              select content;
+                                                              select DateTime.Parse(content);
 
         /// <summary>
         /// 仮想コンストラクタ
@@ -66,7 +66,7 @@
             CaseInsensitiveString = from content in QuotedString
                                     select ScimExpression.String(content);
             CaseDateTimeString = from content in DateTimeString
-                                    select ScimExpression.Constant(DateTime.Parse(content));
+                                    select ScimExpression.Constant(content);
             // Key値 [a-zA-Z][_a-zA-Z0-9]+
             IdentifierName = Parse.Identifier(Parse.Letter, Parse.LetterOrDigit.Or(Parse.Char('_')));
 
