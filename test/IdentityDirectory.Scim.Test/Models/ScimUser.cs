@@ -6,6 +6,8 @@
 
         public string UserName { get; set; }
 
+        public string Id { get; set; }
+
         /// <summary>
         /// Entityは空のコンストラクタでなくてはいけない。
         /// </summary>
@@ -18,6 +20,7 @@
 
         public ScimUser(string id, string userName, string givenName, string familyName)
         {
+            this.Id = id;
             this.UserName = userName;
             this.Name = new CommonName(givenName, familyName);
         }

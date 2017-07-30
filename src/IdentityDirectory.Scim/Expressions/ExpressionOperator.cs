@@ -18,6 +18,8 @@
 
         public static readonly ExpressionOperator Lt = new ExpressionOperator("lt", "less than");
 
+        public static readonly ExpressionOperator Like = new ExpressionOperator("like", "contains");
+
         public static readonly ExpressionOperator Or = new ExpressionOperator("or", "logical or");
 
         public static readonly ExpressionOperator Pr = new ExpressionOperator("pr", "present (has value)");
@@ -87,6 +89,10 @@
             if (name.Equals(Le._name))
             {
                 return Le;
+            }
+            if (name.Equals(Like._name))
+            {
+                return Like;
             }
             if (name.Equals(And._name))
             {

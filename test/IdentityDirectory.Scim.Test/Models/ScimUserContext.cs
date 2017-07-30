@@ -16,6 +16,7 @@
         public DbSet<ScimUser> ScimUsers { get; set; }
 
         // public DbSet<CommonName> CommonNames { get; set; }
+        public DbSet<Item2> Item2s { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,6 +25,9 @@
 
             modelBuilder.Entity<CommonName>()
                 .HasKey(c => c.FamilyName);
+
+            modelBuilder.Entity<Item2>()
+                .HasKey(c => c.Id);
         }
     }
 }
