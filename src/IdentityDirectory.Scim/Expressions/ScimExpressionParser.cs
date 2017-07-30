@@ -6,14 +6,15 @@
 
     public class ScimExpressionParser
     {
+        private static readonly Parser<string> Or = Parse.String("or").Or(Parse.String("Or")).Or(Parse.String("OR")).Token().Return("Or");
         private static readonly Parser<string> And = Parse.String("and").Or(Parse.String("And")).Or(Parse.String("AND")).Token().Return("And");
         private static readonly Parser<string> Eq = Parse.String("eq").Or(Parse.String("Eq")).Or(Parse.String("EQ")).Token().Return("Equal");
         private static readonly Parser<string> Ne = Parse.String("ne").Or(Parse.String("Ne")).Or(Parse.String("NE")).Token().Return("NotEqual");
         private static readonly Parser<string> Gt = Parse.String("gt").Or(Parse.String("Gt")).Or(Parse.String("GT")).Token().Return("GreaterThan");
         private static readonly Parser<string> Ge = Parse.String("ge").Or(Parse.String("Ge")).Or(Parse.String("GE")).Token().Return("GreaterThanOrEqual");
-        private static readonly Parser<string> Or = Parse.String("or").Or(Parse.String("Or")).Or(Parse.String("OR")).Token().Return("Or");
         private static readonly Parser<string> Lt = Parse.String("lt").Or(Parse.String("Lt")).Or(Parse.String("LT")).Token().Return("LessThan");
         private static readonly Parser<string> Le = Parse.String("le").Or(Parse.String("Le")).Or(Parse.String("LE")).Token().Return("LessThanOrEqual");
+        private static readonly Parser<string> Like = Parse.String("like").Or(Parse.String("Like")).Or(Parse.String("LIKE")).Token().Return("Contains");
         private static readonly Parser<string> Co = Parse.String("co").Or(Parse.String("Co")).Or(Parse.String("CO")).Token().Return("Contains");
         private static readonly Parser<string> Sw = Parse.String("sw").Or(Parse.String("Sw")).Or(Parse.String("SW")).Token().Return("StartsWith");
         private static readonly Parser<string> Ew = Parse.String("ew").Or(Parse.String("Ew")).Or(Parse.String("EW")).Token().Return("EndsWith");
@@ -26,6 +27,7 @@
         private static readonly Parser<Func<ScimExpression, ScimExpression>> ValuePath;
 
         private static readonly Parser<ScimExpression> CaseInsensitiveString;
+        private static readonly Parser<ScimExpression> CaseDateTimeString;
         private static readonly Parser<ScimExpression> Operand;
         private static readonly Parser<ScimExpression> Literal;
         private static readonly Parser<ScimExpression> Filter;
@@ -44,10 +46,17 @@
 
         private static readonly Parser<char> StringContentChar = Parse.CharExcept("\\\"").Or(Parse.String("\\\\").Return('\\')).Or(Parse.String("\\\"").Return('\"'));
         private static readonly Parser<string> QuotedString = from open in Parse.Char('\'').Optional()
-                                                              from content in Parse.LetterOrDigit.Or(Parse.Chars(",;:.-/ ")).Many().Text()
+                                                              from content in Parse.LetterOrDigit.Or(Parse.Chars(",;:.-/ ").Or(Parse.String("*").Return('%'))).Many().Text()
                                                               from close in Parse.Char('\'').Optional()
                                                               select content;
-        
+        private static readonly Parser<DateTime> DateTimeString = from open in Parse.String("datetime\'")
+                                                                         .Or(Parse.String("Datetime\'").Return("datetime\'"))
+                                                                         .Or(Parse.String("DateTime\'").Return("datetime\'"))
+                                                                         .Or(Parse.String("DATETIME\'").Return("datetime\'"))
+                                                              from content in Parse.LetterOrDigit.Or(Parse.Chars(":./ ")).Many().Text()
+                                                              from close in Parse.Char('\'')
+                                                              select DateTime.Parse(content);
+
         /// <summary>
         /// 仮想コンストラクタ
         /// </summary>
@@ -56,14 +65,17 @@
             // Value値 [']?[a-zA-Z][a-zA-Z0-9]+['}?
             CaseInsensitiveString = from content in QuotedString
                                     select ScimExpression.String(content);
+            CaseDateTimeString = from content in DateTimeString
+                                    select ScimExpression.Constant(content);
             // Key値 [a-zA-Z][_a-zA-Z0-9]+
             IdentifierName = Parse.Identifier(Parse.Letter, Parse.LetterOrDigit.Or(Parse.Char('_')));
 
             //compValue = false / null / true / number / string 
             //; rules from JSON(RFC 7159)
-            Literal = Parse.String("true").Return(ScimExpression.Constant(true))
-                .XOr(Parse.String("false").Return(ScimExpression.Constant(false)))
-                .XOr(Parse.String("null").Return(ScimExpression.Constant(null)));
+            Literal = Parse.String("true").Or(Parse.String("True").Or(Parse.String("TRUE"))).Return(ScimExpression.Constant(true))
+                .XOr(Parse.String("false").Or(Parse.String("False").Or(Parse.String("FALSE"))).Return(ScimExpression.Constant(false)))
+                .XOr(Parse.String("null").Or(Parse.String("Null").Or(Parse.String("NULL"))).Return(ScimExpression.Constant(null)))
+                .XOr(CaseDateTimeString);
 
             //ATTRNAME = ALPHA * (nameChar)
             //nameChar = "-" / "_" / DIGIT / ALPHA
@@ -93,12 +105,12 @@
                 .XOr(Literal.Or(AttrPath.Token()))
                 .XOr(CaseInsensitiveString)).Token();
 
-            // compareOp = "eq" / "ne" / "co" /
+            // compareOp = "eq" / "ne" / "co" / "like" /
             //        "sw" / "ew" /
             //        "gt" / "lt" /
             //        "ge" / "le"
             Comparison = Parse.XChainOperator(
-                Le.Or(Lt)
+                Le.Or(Lt.Or(Like))
                 .XOr(Ge.Or(Gt))
                 .XOr(Eq.Or(Ew))
                 .XOr(Sw)

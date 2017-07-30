@@ -50,5 +50,59 @@
             Console.WriteLine(rootNode);
             Assert.Equal("Or(Equal(User_Type,労働者),LessThan(UserType,2017/12/31 23:59:59.999))", rootNode.ToString());
         }
+
+        [Fact]
+        public void CanParseCollectionSlashFilter2()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(User_Type like '労働者*')OR(UserType LT'2017/12/31 23:59:59.999')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("Or(Contains(User_Type,労働者%),LessThan(UserType,2017/12/31 23:59:59.999))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseFilterWithPrecedenceOrAnd()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(userType eq'Worker' and userType eq'Employee') or (userType eq 'ParttimeEmployee' and (true eq True))");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("Or(And(Equal(userType,Worker),Equal(userType,Employee)),And(Equal(userType,ParttimeEmployee),Equal(True,True)))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseFilterWithPrecedenceOrAnd2()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("userType eq'Worker' and userType eq'Employee' or userType eq 'ParttimeEmployee' and true eq True");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("And(Or(And(Equal(userType,Worker),Equal(userType,Employee)),Equal(userType,ParttimeEmployee)),Equal(True,True))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseDataTimeFilter1()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(User_Type like '労働者*')OR(UserType LT datetime'2017/12/31 23:59:59.999')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("Or(Contains(User_Type,労働者%),LessThan(UserType,2017/12/31 23:59:59))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseDataTimeFilter2()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(UserType eq Datetime'2017/12/31')OR(UserType LT datetime'2017/12/31 23:59:59.999')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("Or(Equal(UserType,2017/12/31 0:00:00),LessThan(UserType,2017/12/31 23:59:59))", rootNode.ToString());
+        }
+
+        [Fact]
+        public void CanParseAnd3Filter()
+        {
+            var rootNode = ScimExpressionParser.ParseExpression("(UserName eq 'user3')and(UserName eq 'user1')and(UserName eq 'user2')");
+            Assert.NotNull(rootNode);
+            Console.WriteLine(rootNode);
+            Assert.Equal("And(And(Equal(UserName,user3),Equal(UserName,user1)),Equal(UserName,user2))", rootNode.ToString());
+        }
     }
 }

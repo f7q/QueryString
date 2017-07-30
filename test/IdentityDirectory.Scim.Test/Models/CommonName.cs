@@ -32,4 +32,14 @@ namespace IdentityDirectory.Scim.Test.Models
 
         public string MiddleName { get; set; }
     }
+    public class Item2
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; }
+
+        public bool Flg { get; set; }
+
+        public DateTime Day { get; set; }
+    }
 }
